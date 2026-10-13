@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#18243a"><meta name="description" content="Личный календарь дневных и ночных смен">
+<link rel="manifest" href="manifest.json"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="stylesheet" href="style.css"><title>Мой рабочий график</title>
+</head>
+<body>
+<header><div class="eyebrow">ЛИЧНЫЙ КАЛЕНДАРЬ</div><h1>Мой график</h1><button id="installBtn" class="install hidden">Установить приложение</button></header>
+<main>
+<section class="next card"><div class="eyebrow" id="nextLabel">БЛИЖАЙШАЯ СМЕНА</div><div id="nextTitle" class="next-title">Загрузка…</div><div id="nextDate" class="muted"></div><div id="nextTime" class="next-time"></div><div id="nextCountdown" class="muted"></div></section>
+<section class="card"><div class="monthbar"><button id="prevMonth" aria-label="Предыдущий месяц">‹</button><h2 id="monthTitle"></h2><button id="nextMonth" aria-label="Следующий месяц">›</button></div><div class="calendar" id="calendar"></div><div class="legend"><span><i class="dot day"></i> День</span><span><i class="dot night"></i> Ночь</span><span><i class="dot leave"></i> Отпуск</span><span><i class="dot off"></i> Выходной</span></div></section>
+<section class="card editor"><h2 id="editTitle">Изменить дату</h2><label for="dateInput">Дата</label><input type="date" id="dateInput"><label for="shiftInput">Статус</label><select id="shiftInput"><option value="DAY">Дневная смена</option><option value="NIGHT">Ночная смена</option><option value="OFF">Выходной</option><option value="VACATION">Отпуск</option></select><button id="saveBtn" class="primary">Сохранить дату</button><p class="hint">День: 08:00–20:30 (11,5 ч). Ночь: 20:45–07:45 следующего дня (10,5 ч).</p></section>
+<section class="card tools"><h2>Инструменты</h2><button id="notifyBtn">Включить уведомления</button><button id="exportBtn">Экспортировать календарь (.ics)</button><button id="resetBtn" class="danger">Сбросить изменения</button><p id="status" class="muted" role="status"></p></section>
+</main><footer>Данные хранятся в этом браузере на этом устройстве.</footer>
+<script src="app.js"></script>
+</body></html>
