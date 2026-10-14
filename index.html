@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ru">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#18243a"><meta name="description" content="Личный календарь дневных и ночных смен">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#18243a"><meta name="description" content="Личный календарь смен и прогноз зарплаты">
 <link rel="manifest" href="manifest.json"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="stylesheet" href="style.css"><title>Мой рабочий график</title>
 </head>
 <body>
@@ -9,8 +9,68 @@
 <main>
 <section class="next card"><div class="eyebrow" id="nextLabel">БЛИЖАЙШАЯ СМЕНА</div><div id="nextTitle" class="next-title">Загрузка…</div><div id="nextDate" class="muted"></div><div id="nextTime" class="next-time"></div><div id="nextCountdown" class="muted"></div></section>
 <section class="card"><div class="monthbar"><button id="prevMonth" aria-label="Предыдущий месяц">‹</button><h2 id="monthTitle"></h2><button id="nextMonth" aria-label="Следующий месяц">›</button></div><div class="calendar" id="calendar"></div><div class="legend"><span><i class="dot day"></i> День</span><span><i class="dot night"></i> Ночь</span><span><i class="dot leave"></i> Отпуск</span><span><i class="dot off"></i> Выходной</span></div></section>
-<section class="card editor"><h2 id="editTitle">Изменить дату</h2><label for="dateInput">Дата</label><input type="date" id="dateInput"><label for="shiftInput">Статус</label><select id="shiftInput"><option value="DAY">Дневная смена</option><option value="NIGHT">Ночная смена</option><option value="OFF">Выходной</option><option value="VACATION">Отпуск</option></select><button id="saveBtn" class="primary">Сохранить дату</button><p class="hint">День: 08:00–20:30 (11,5 ч). Ночь: 20:45–07:45 следующего дня (10,5 ч).</p></section>
-<section class="card tools"><h2>Инструменты</h2><button id="notifyBtn">Включить уведомления</button><button id="exportBtn">Экспортировать календарь (.ics)</button><button id="resetBtn" class="danger">Сбросить изменения</button><p id="status" class="muted" role="status"></p></section>
-</main><footer>Данные хранятся в этом браузере на этом устройстве.</footer>
+<section class="card editor"><h2 id="editTitle">Изменить дату</h2><label for="dateInput">Дата</label><input type="date" id="dateInput"><label for="shiftInput">Статус</label><select id="shiftInput"><option value="DAY">Дневная смена</option><option value="NIGHT">Ночная смена</option><option value="OFF">Выходной</option><option value="VACATION">Отпуск</option></select><button id="saveBtn" class="primary">Сохранить дату</button><p class="hint">День: 08:00–20:30 (11,5 оплачиваемого часа). Ночь: 20:45–07:45 следующего дня (10,5 оплачиваемого часа).</p></section>
+
+<section class="card salary">
+  <div class="salary-head"><div><div class="eyebrow">ПРОГНОЗ ПО ВЫБРАННОМУ МЕСЯЦУ</div><h2>Зарплата</h2></div><div id="salaryMonth" class="salary-month"></div></div>
+  <p class="hint">Оценка по сменам календаря и коэффициентам из расчётных листков. Фактические часы, премии и удержания могут отличаться.</p>
+  <div class="summary-grid">
+    <div class="metric"><span>Начислено</span><strong id="salaryGross">—</strong></div>
+    <div class="metric main-metric"><span>Прогноз на руки</span><strong id="salaryNet">—</strong></div>
+    <div class="metric"><span>Удержания</span><strong id="salaryDeductions">—</strong></div>
+    <div class="metric"><span>Остаток после выплат</span><strong id="salaryBalance">—</strong></div>
+  </div>
+  <div class="shift-counts" id="salaryShiftCounts"></div>
+  <details class="salary-details" open><summary>Расчёт начислений</summary><div id="salaryBreakdown" class="breakdown"></div></details>
+  <details class="salary-details"><summary>Параметры расчёта</summary>
+    <label for="salaryProfile">Профиль по расчётному листку</label>
+    <select id="salaryProfile"><option value="sep">Сентябрь 2026 — последний листок</option><option value="feb">Февраль 2026</option><option value="jan">Январь 2026</option></select>
+    <div class="form-grid">
+      <div><label for="payTariff">Тариф, ₽/ч</label><input id="payTariff" type="number" min="0" step="0.01"></div>
+      <div><label for="dayHours">Оплачиваемых часов в дневной смене</label><input id="dayHours" type="number" min="0" step="0.01"></div>
+      <div><label for="nightShiftHours">Оплачиваемых часов в ночной смене</label><input id="nightShiftHours" type="number" min="0" step="0.01"></div>
+      <div><label for="hoursOverride">Фактические часы за месяц (0 — из графика)</label><input id="hoursOverride" type="number" min="0" step="0.01"></div>
+      <div><label for="nightPremiumPerShift">Ночных часов доплаты на ночную смену</label><input id="nightPremiumPerShift" type="number" min="0" step="0.01"></div>
+      <div><label for="eveningPremiumPerShift">Вечерних часов доплаты на ночную смену</label><input id="eveningPremiumPerShift" type="number" min="0" step="0.01"></div>
+      <div><label for="nightPremiumHoursOverride">Фактические ночные часы всего (0 — оценка)</label><input id="nightPremiumHoursOverride" type="number" min="0" step="0.01"></div>
+      <div><label for="eveningPremiumHoursOverride">Фактические вечерние часы всего (0 — оценка)</label><input id="eveningPremiumHoursOverride" type="number" min="0" step="0.01"></div>
+      <div><label for="vacationPay">Отпускные и другие начисления, ₽</label><input id="vacationPay" type="number" min="0" step="0.01"></div>
+      <div><label for="taxableBenefit">«Неначисляемый доход» для НДФЛ, ₽</label><input id="taxableBenefit" type="number" min="0" step="0.01"></div>
+      <div><label for="taxRate">НДФЛ, %</label><input id="taxRate" type="number" min="0" max="100" step="0.1"></div>
+      <div><label for="unionRate">Профсоюзные взносы, %</label><input id="unionRate" type="number" min="0" max="100" step="0.1"></div>
+      <div><label for="mealDeduction">Удержание за питание, ₽</label><input id="mealDeduction" type="number" min="0" step="0.01"></div>
+      <div><label for="otherDeductions">Прочие удержания (например, брак), ₽</label><input id="otherDeductions" type="number" min="0" step="0.01"></div>
+      <div><label for="advancePaid">Аванс уже выплачен, ₽</label><input id="advancePaid" type="number" min="0" step="0.01"></div>
+      <div><label for="otherPaid">Другие выплаты уже перечислены на руки, ₽</label><input id="otherPaid" type="number" min="0" step="0.01"></div>
+    </div>
+    <h3>Проценты надбавок от тарифной оплаты</h3>
+    <div class="form-grid">
+      <div><label for="hazardPct">Вредность, %</label><input id="hazardPct" type="number" min="0" step="0.1"></div>
+      <div><label for="taskPct">Нормированное задание, %</label><input id="taskPct" type="number" min="0" step="0.1"></div>
+      <div><label for="servicePct">Эффективное оказание услуг, %</label><input id="servicePct" type="number" min="0" step="0.1"></div>
+      <div><label for="qualityPct">Высокое качество труда, %</label><input id="qualityPct" type="number" min="0" step="0.1"></div>
+      <div><label for="professionalPct">Профмастерство, %</label><input id="professionalPct" type="number" min="0" step="0.1"></div>
+      <div><label for="productivityPct">Плановая производительность, %</label><input id="productivityPct" type="number" min="0" step="0.1"></div>
+      <div><label for="productionBonusPct">Производственная премия, %</label><input id="productionBonusPct" type="number" min="0" step="0.1"></div>
+      <div><label for="nightPct">Ночные с доплатами, % тарифа за час</label><input id="nightPct" type="number" min="0" step="0.1"></div>
+      <div><label for="eveningPct">Вечерние, % тарифа за час</label><input id="eveningPct" type="number" min="0" step="0.1"></div>
+    </div>
+    <p class="hint">Коэффициенты можно изменить. При выборе другого профиля коэффициенты, типичные удержания за питание и «неначисляемый доход» заменятся значениями соответствующего листка.</p>
+    <button id="saveSalaryBtn" class="primary">Сохранить параметры</button>
+    <button id="resetSalaryBtn" class="secondary">Восстановить параметры сентября</button>
+  </details>
+  <details class="salary-details"><summary>Сверка с исходными платёжками</summary>
+    <div class="table-wrap"><table class="payroll-table"><thead><tr><th>Источник</th><th>Что проверено</th></tr></thead><tbody>
+    <tr><td>Январь 2026</td><td>Тарифная оплата и процентные надбавки</td></tr>
+    <tr><td>Февраль 2026</td><td>Те же надбавки, ночные и вечерние часы</td></tr>
+    <tr><td>Сентябрь 2026</td><td>Изменённые коэффициенты, отпускные и дополнительное удержание</td></tr>
+    </tbody></table></div>
+    <p class="hint">Проверка по исходным листкам: формула воспроизводит строки начислений при вводе фактических часов и отдельного количества ночных/вечерних часов. Профсоюзные взносы составляют 1% начислений. НДФЛ близок к 13% от начислений плюс «неначисляемый доход»; возможна разница в 1 ₽ из-за округления по отдельным выплатам.</p>
+  </details>
+  <p id="salaryStatus" class="muted" role="status"></p>
+</section>
+
+<section class="card tools"><h2>Инструменты</h2><button id="notifyBtn">Включить уведомления</button><button id="exportBtn">Экспортировать календарь (.ics)</button><button id="resetBtn" class="danger">Сбросить изменения графика</button><p id="status" class="muted" role="status"></p></section>
+</main><footer>График и параметры зарплаты хранятся в этом браузере на этом устройстве.</footer>
 <script src="app.js"></script>
 </body></html>
