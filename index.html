@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ru">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#18243a"><meta name="description" content="Личный календарь смен и прогноз зарплаты">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#18243a"><meta name="description" content="Личный календарь смен, прогноз зарплаты и локальная история расчётных листков">
 <link rel="manifest" href="manifest.json"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="stylesheet" href="style.css"><title>Мой рабочий график</title>
 </head>
 <body>
@@ -13,18 +13,24 @@
 
 <section class="card salary">
   <div class="salary-head"><div><div class="eyebrow">ПРОГНОЗ ПО ВЫБРАННОМУ МЕСЯЦУ</div><h2>Зарплата</h2></div><div id="salaryMonth" class="salary-month"></div></div>
-  <p class="hint">Оценка по сменам календаря и коэффициентам из расчётных листков. Фактические часы, премии и удержания могут отличаться.</p>
+  <p class="hint">Расчёт использует часы из графика и модель надбавок. Премии, отпускные, перерасчёты и удержания могут меняться; прогноз не является расчётным листком работодателя.</p>
   <div class="summary-grid">
-    <div class="metric"><span>Начислено</span><strong id="salaryGross">—</strong></div>
+    <div class="metric"><span>Начислено по модели</span><strong id="salaryGross">—</strong></div>
     <div class="metric main-metric"><span>Прогноз на руки</span><strong id="salaryNet">—</strong></div>
-    <div class="metric"><span>Удержания</span><strong id="salaryDeductions">—</strong></div>
-    <div class="metric"><span>Остаток после выплат</span><strong id="salaryBalance">—</strong></div>
+    <div class="metric"><span>Удержания по модели</span><strong id="salaryDeductions">—</strong></div>
+    <div class="metric"><span>Остаток после уже полученных выплат</span><strong id="salaryBalance">—</strong></div>
   </div>
   <div class="shift-counts" id="salaryShiftCounts"></div>
+  <div class="forecast-range">
+    <div class="range-title">Диапазон по историческим профилям</div>
+    <div class="range-grid"><div><span>Нижний сценарий</span><strong id="forecastLow">—</strong></div><div><span>Средний сценарий</span><strong id="forecastMid">—</strong></div><div><span>Верхний сценарий</span><strong id="forecastHigh">—</strong></div></div>
+    <p class="hint" id="rangeSource">Диапазон появится после расчёта.</p>
+  </div>
+  <div class="quick-calc"><h3>Если добавить ещё одну смену</h3><div><span>+1 дневная</span><strong id="dayShiftDelta">—</strong></div><div><span>+1 ночная</span><strong id="nightShiftDelta">—</strong></div><p class="hint">Это изменение прогноза «на руки» по текущим коэффициентам; ночная доплата оценивается отдельно.</p></div>
   <details class="salary-details" open><summary>Расчёт начислений</summary><div id="salaryBreakdown" class="breakdown"></div></details>
   <details class="salary-details"><summary>Параметры расчёта</summary>
-    <label for="salaryProfile">Профиль по расчётному листку</label>
-    <select id="salaryProfile"><option value="sep">Сентябрь 2026 — последний листок</option><option value="feb">Февраль 2026</option><option value="jan">Январь 2026</option></select>
+    <label for="salaryProfile">Профиль коэффициентов</label>
+    <select id="salaryProfile"><option value="latest">Последняя загруженная платёжка</option><option value="sep">Сентябрь 2026</option><option value="mar">Март 2026</option><option value="feb">Февраль 2026</option><option value="jan">Январь 2026</option><option value="manual">Ручные настройки</option></select>
     <div class="form-grid">
       <div><label for="payTariff">Тариф, ₽/ч</label><input id="payTariff" type="number" min="0" step="0.01"></div>
       <div><label for="dayHours">Оплачиваемых часов в дневной смене</label><input id="dayHours" type="number" min="0" step="0.01"></div>
@@ -34,14 +40,14 @@
       <div><label for="eveningPremiumPerShift">Вечерних часов доплаты на ночную смену</label><input id="eveningPremiumPerShift" type="number" min="0" step="0.01"></div>
       <div><label for="nightPremiumHoursOverride">Фактические ночные часы всего (0 — оценка)</label><input id="nightPremiumHoursOverride" type="number" min="0" step="0.01"></div>
       <div><label for="eveningPremiumHoursOverride">Фактические вечерние часы всего (0 — оценка)</label><input id="eveningPremiumHoursOverride" type="number" min="0" step="0.01"></div>
-      <div><label for="vacationPay">Отпускные и другие начисления, ₽</label><input id="vacationPay" type="number" min="0" step="0.01"></div>
-      <div><label for="taxableBenefit">«Неначисляемый доход» для НДФЛ, ₽</label><input id="taxableBenefit" type="number" min="0" step="0.01"></div>
+      <div><label for="vacationPay">Отпускные / разовые начисления, ₽</label><input id="vacationPay" type="number" min="0" step="0.01"></div>
+      <div><label for="taxableBenefit">Доход для НДФЛ за питание, ₽</label><input id="taxableBenefit" type="number" min="0" step="0.01"></div>
       <div><label for="taxRate">НДФЛ, %</label><input id="taxRate" type="number" min="0" max="100" step="0.1"></div>
       <div><label for="unionRate">Профсоюзные взносы, %</label><input id="unionRate" type="number" min="0" max="100" step="0.1"></div>
       <div><label for="mealDeduction">Удержание за питание, ₽</label><input id="mealDeduction" type="number" min="0" step="0.01"></div>
       <div><label for="otherDeductions">Прочие удержания (например, брак), ₽</label><input id="otherDeductions" type="number" min="0" step="0.01"></div>
-      <div><label for="advancePaid">Аванс уже выплачен, ₽</label><input id="advancePaid" type="number" min="0" step="0.01"></div>
-      <div><label for="otherPaid">Другие выплаты уже перечислены на руки, ₽</label><input id="otherPaid" type="number" min="0" step="0.01"></div>
+      <div><label for="advancePaid">Аванс уже получен, ₽</label><input id="advancePaid" type="number" min="0" step="0.01"></div>
+      <div><label for="otherPaid">Другие выплаты уже получены, ₽</label><input id="otherPaid" type="number" min="0" step="0.01"></div>
     </div>
     <h3>Проценты надбавок от тарифной оплаты</h3>
     <div class="form-grid">
@@ -55,22 +61,24 @@
       <div><label for="nightPct">Ночные с доплатами, % тарифа за час</label><input id="nightPct" type="number" min="0" step="0.1"></div>
       <div><label for="eveningPct">Вечерние, % тарифа за час</label><input id="eveningPct" type="number" min="0" step="0.1"></div>
     </div>
-    <p class="hint">Коэффициенты можно изменить. При выборе другого профиля коэффициенты, типичные удержания за питание и «неначисляемый доход» заменятся значениями соответствующего листка.</p>
-    <button id="saveSalaryBtn" class="primary">Сохранить параметры</button>
-    <button id="resetSalaryBtn" class="secondary">Восстановить параметры сентября</button>
-  </details>
-  <details class="salary-details"><summary>Сверка с исходными платёжками</summary>
-    <div class="table-wrap"><table class="payroll-table"><thead><tr><th>Источник</th><th>Что проверено</th></tr></thead><tbody>
-    <tr><td>Январь 2026</td><td>Тарифная оплата и процентные надбавки</td></tr>
-    <tr><td>Февраль 2026</td><td>Те же надбавки, ночные и вечерние часы</td></tr>
-    <tr><td>Сентябрь 2026</td><td>Изменённые коэффициенты, отпускные и дополнительное удержание</td></tr>
-    </tbody></table></div>
-    <p class="hint">Проверка по исходным листкам: формула воспроизводит строки начислений при вводе фактических часов и отдельного количества ночных/вечерних часов. Профсоюзные взносы составляют 1% начислений. НДФЛ близок к 13% от начислений плюс «неначисляемый доход»; возможна разница в 1 ₽ из-за округления по отдельным выплатам.</p>
+    <p class="hint">Профиль последней загруженной платёжки применяется без отпускных и других разовых начислений. Суммы «уже получено» не меняются при выборе профиля.</p>
+    <button id="saveSalaryBtn" class="primary">Сохранить параметры</button><button id="resetSalaryBtn" class="secondary">Восстановить настройки по сентябрю 2026</button>
   </details>
   <p id="salaryStatus" class="muted" role="status"></p>
 </section>
 
-<section class="card tools"><h2>Инструменты</h2><button id="notifyBtn">Включить уведомления</button><button id="exportBtn">Экспортировать календарь (.ics)</button><button id="resetBtn" class="danger">Сбросить изменения графика</button><p id="status" class="muted" role="status"></p></section>
-</main><footer>График и параметры зарплаты хранятся в этом браузере на этом устройстве.</footer>
+<section class="card history-card">
+  <div class="salary-head"><div><div class="eyebrow">ЛОКАЛЬНАЯ ИСТОРИЯ</div><h2>История зарплаты</h2></div><div class="history-count" id="historyCount">0 месяцев</div></div>
+  <p class="hint">Загрузи один или несколько HTML-расчётных листков. Приложение извлечёт суммы и часы, запомнит только сводные данные и коэффициенты. Исходные файлы не отправляются на сервер и не сохраняются в истории.</p>
+  <label for="payrollFiles">Расчётные листки (.HTML / .HTM) или готовая сводка истории (.JSON)</label><input id="payrollFiles" type="file" accept=".html,.htm,.json,text/html,application/json" multiple>
+  <button id="importPayrollBtn" class="primary">Импортировать платёжки / JSON-историю</button>
+  <div id="historySummary" class="history-summary"></div>
+  <div class="table-wrap"><table class="payroll-table"><thead><tr><th>Месяц</th><th>Часы</th><th>Ночные</th><th>Начислено</th><th>Удержано</th><th>Выплачено</th><th>На руки / час</th></tr></thead><tbody id="historyRows"><tr><td colspan="7">Пока нет загруженных расчётных листков.</td></tr></tbody></table></div>
+  <div class="history-actions"><button id="exportHistoryBtn">Скачать историю CSV</button><button id="clearHistoryBtn" class="danger">Удалить историю платёжек</button></div>
+  <p id="historyStatus" class="muted" role="status"></p>
+</section>
+
+<section class="card tools"><h2>Инструменты</h2><button id="notifyBtn">Включить уведомления</button><button id="exportBtn">Экспортировать календарь (.ics)</button><button id="backupBtn">Скачать резервную копию приложения (.json)</button><label for="restoreInput">Восстановить резервную копию</label><input id="restoreInput" type="file" accept="application/json,.json"><button id="resetBtn" class="danger">Сбросить изменения графика</button><p id="status" class="muted" role="status"></p></section>
+</main><footer>График, настройки и история зарплаты хранятся локально в этом браузере на этом устройстве.</footer>
 <script src="app.js"></script>
 </body></html>
