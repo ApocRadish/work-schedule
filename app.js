@@ -279,28 +279,47 @@ async function parsePayslipFile(file){
   record.specialMonth=record.vacationEarnings>0;
   return record;
 }
-$('importPayrollBtn').onclick=async()=>{
-  const files=[...($('payrollFiles').files||[])];if(!files.length){$('historyStatus').textContent='Сначала выбери один или несколько HTML-файлов.';return}
-  $('importPayrollBtn').disabled=true;$('historyStatus').textContent=`Разбираю файлов: ${files.length}…`;
+async function importPayrollFiles(fileList){
+  const files=[...fileList];
+  if(!files.length){$('historyStatus').textContent='Файл не выбран. Нажми кнопку импорта и выбери JSON или HTML-платёжку.';return}
+  const button=$('importPayrollBtn'),input=$('payrollFiles');
+  button.disabled=true;button.textContent='Импортирую…';
+  $('historyStatus').textContent=`Разбираю файлов: ${files.length}…`;
   let good=0;const errors=[];
-  for(const file of files){
-    try{
-      let parsedRecords=[];
-      if(file.name.toLowerCase().endsWith('.json')){
-        const obj=JSON.parse(await file.text());
-        const source=Array.isArray(obj)?obj:(obj&&Array.isArray(obj.payrollHistory)?obj.payrollHistory:null);
-        if(!source)throw new Error('В JSON не найдена сводная история платёжек.');
-        parsedRecords=source.map(sanitizeHistoryRecord).filter(Boolean);
-        if(!parsedRecords.length)throw new Error('В JSON нет корректных записей месяцев.');
-      } else parsedRecords=[await parsePayslipFile(file)];
-      for(const parsed of parsedRecords){const old=(data.payrollHistory||[]).findIndex(x=>x.month===parsed.month);if(old>=0)data.payrollHistory.splice(old,1);data.payrollHistory.push(parsed);good++}
-    }catch(e){errors.push(`${file.name}: ${e.message||'ошибка разбора'}`)}
-  }
-  data.payrollHistory.sort((a,b)=>a.month.localeCompare(b.month));
-  if(data.payrollHistory.length){const latest=data.payrollHistory[data.payrollHistory.length-1];data.latestImportedRates=latest.rates;applySalaryProfile('latest')}
-  persist();render();$('payrollFiles').value='';$('importPayrollBtn').disabled=false;
-  $('historyStatus').textContent=`Добавлено/обновлено: ${good}. В истории всего месяцев: ${data.payrollHistory.length}.`+(errors.length?' Ошибки: '+errors.join(' · '):'');
+  try{
+    for(const file of files){
+      try{
+        let parsedRecords=[];
+        if(file.name.toLowerCase().endsWith('.json') || file.type==='application/json'){
+          const obj=JSON.parse(await file.text());
+          const source=Array.isArray(obj)?obj:(obj&&Array.isArray(obj.payrollHistory)?obj.payrollHistory:null);
+          if(!source)throw new Error('В JSON не найдена сводная история платёжек. Ожидается поле payrollHistory.');
+          parsedRecords=source.map(sanitizeHistoryRecord).filter(Boolean);
+          if(!parsedRecords.length)throw new Error('В JSON нет корректных записей месяцев.');
+        } else parsedRecords=[await parsePayslipFile(file)];
+        for(const parsed of parsedRecords){
+          const old=(data.payrollHistory||[]).findIndex(x=>x.month===parsed.month);
+          if(old>=0)data.payrollHistory.splice(old,1);
+          data.payrollHistory.push(parsed);good++;
+        }
+      }catch(e){errors.push(`${file.name}: ${e.message||'ошибка разбора'}`)}
+    }
+    data.payrollHistory.sort((a,b)=>a.month.localeCompare(b.month));
+    if(data.payrollHistory.length){const latest=data.payrollHistory[data.payrollHistory.length-1];data.latestImportedRates=latest.rates;applySalaryProfile('latest')}
+    persist();render();
+    $('historyStatus').textContent=`Импорт завершён. Добавлено/обновлено записей: ${good}. В истории всего месяцев: ${data.payrollHistory.length}.`+(errors.length?' Ошибки: '+errors.join(' · '):good?'':' Не удалось импортировать файлы. Проверь, что выбран файл .json или исходный расчётный листок .html.');
+  }catch(e){$('historyStatus').textContent=`Ошибка импорта: ${e.message||e}`}
+  finally{input.value='';button.disabled=false;button.textContent='Импортировать платёжки / JSON-историю'}
+}
+$('importPayrollBtn').onclick=()=>{
+  const files=[...($('payrollFiles').files||[])];
+  if(!files.length){$('historyStatus').textContent='Сейчас откроется выбор файла. Выбери JSON-историю или HTML-платёжки.';$('payrollFiles').click();return}
+  importPayrollFiles(files);
 };
+$('payrollFiles').addEventListener('change',()=>{
+  const files=[...($('payrollFiles').files||[])];
+  if(files.length)importPayrollFiles(files);
+});
 function sanitizeHistoryRecord(h){
   if(!h||!/^\d{4}-\d{2}$/.test(String(h.month||''))||!(Number(h.gross)>0))return null;
   const numeric=['tariff','hours','nightHours','nightPay','eveningHours','eveningPay','gross','deductions','paid','net','netPerHour','tax','union','mealDeduction','taxableBenefit','otherDeductions','vacationEarnings','advance','salaryPayment','vacationPayment'];
