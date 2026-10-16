@@ -45,7 +45,17 @@ function loadData(){
   } catch(e) {}
   return structuredClone(defaults);
 }
-function persist(){try{localStorage.setItem(KEY,JSON.stringify(data));return true}catch(e){$('status').textContent='Не удалось сохранить: возможно, в браузере закончилось место.';return false}}
+const MIRROR_DB='work-schedule-mirror',score=x=>Object.keys((x&&x.shifts)||{}).length+10*(((x&&x.payrollHistory)||[]).length);
+let mirrorTimer;
+function mirrorSoon(){clearTimeout(mirrorTimer);mirrorTimer=setTimeout(mirrorSave,500)}
+function mirrorOpen(){return new Promise((res,rej)=>{const r=indexedDB.open(MIRROR_DB,1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+async function mirrorSave(){try{const db=await mirrorOpen(),tx=db.transaction('kv','readwrite'),st=tx.objectStore('kv'),snap={savedAt:Date.now(),data:JSON.parse(JSON.stringify(data))},g=st.get('best');
+  g.onsuccess=()=>{st.put(snap,'latest');if(!g.result||score(snap.data)>=score(g.result.data)*0.7)st.put(snap,'best')};
+  await new Promise(r=>{tx.oncomplete=r;tx.onerror=r;tx.onabort=r});db.close()}catch(e){}}
+async function mirrorLoad(){try{const db=await mirrorOpen(),st=db.transaction('kv').objectStore('kv'),rd=k=>new Promise(r=>{const q=st.get(k);q.onsuccess=()=>r(q.result||null);q.onerror=()=>r(null)}),o=[await rd('latest'),await rd('best')];db.close();return o}catch(e){return [null,null]}}
+async function recoverIfEmpty(){if(score(data)>0)return;const c=(await mirrorLoad()).filter(Boolean).sort((x,y)=>score(y.data)-score(x.data))[0];if(!c||score(c.data)===0)return;
+  if(confirm(`График и история пусты, но найдена автокопия от ${new Date(c.savedAt).toLocaleString('ru-RU')}. Восстановить?`)){data={...structuredClone(defaults),...c.data,salary:{...salaryDefaults,...(c.data.salary||{})},payrollHistory:Array.isArray(c.data.payrollHistory)?c.data.payrollHistory:[]};persist();render();$('status').textContent='Данные восстановлены из автокопии.'}}
+function persist(){try{localStorage.setItem(KEY,JSON.stringify(data));mirrorSoon();return true}catch(e){$('status').textContent='Не удалось сохранить: возможно, в браузере закончилось место.';return false}}
 function isoDate(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
 function fromIso(s){const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)}
 function addDays(s,n){const d=fromIso(s);d.setDate(d.getDate()+n);return isoDate(d)}
@@ -550,6 +560,17 @@ function showView(v){if(!VIEWS.includes(v))v='plan';document.querySelectorAll('[
 document.querySelectorAll('.tabbar button').forEach(b=>{b.onclick=()=>showView(b.dataset.go)});
 let view0='plan';try{view0=localStorage.getItem('work-schedule-view')||'plan'}catch(e){}
 showView(view0);
+function parseQuick(str,y,m){const n=new Date(y,m,0).getDate(),out={},bad=[];
+  for(const t of String(str).toLowerCase().replace(/[;\s]+/g,',').split(',')){if(!t)continue;const k=t.match(/^(\d{1,2})(?:-(\d{1,2}))?([нn]|[дd])?$/);if(!k){bad.push(t);continue}
+    const a=+k[1],b=k[2]?+k[2]:a;if(a<1||b>n||b<a){bad.push(t);continue}for(let d=a;d<=b;d++)out[d]=/[нn]/.test(k[3]||'')?'NIGHT':'DAY'}
+  return {out,bad}}
+function quickPreview(){const p=parseQuick($('quickInput').value,shown.getFullYear(),shown.getMonth()+1),v=Object.values(p.out),dn=v.filter(x=>x==='DAY').length,nn=v.length-dn;
+  $('quickHint').textContent=p.bad.length?`Не понял: ${p.bad.join(', ')}`:v.length?`Распознано: ${dn} дн., ${nn} ноч. Месяц: ${shown.toLocaleDateString('ru-RU',{month:'long',year:'numeric'})}.`:'Дни через запятую, диапазоны через дефис, «н» — ночная смена.';return p}
+$('quickInput').oninput=quickPreview;
+$('quickApply').onclick=()=>{const p=quickPreview(),keys=Object.keys(p.out);if(p.bad.length||!keys.length)return;
+  const pre=`${shown.getFullYear()}-${String(shown.getMonth()+1).padStart(2,'0')}-`,old=Object.keys(data.shifts).filter(k=>k.startsWith(pre));
+  if(old.length&&!confirm(`Заменить ${old.length} смен в этом месяце на ${keys.length} новых? Отпуск не изменится.`))return;
+  old.forEach(k=>delete data.shifts[k]);keys.forEach(d=>{data.shifts[pre+String(d).padStart(2,'0')]=p.out[d]});persist();render();$('quickInput').value='';$('status').textContent=`Месяц заполнен: ${keys.length} смен.`};
 const THEME_KEY='work-schedule-theme';
 function applyTheme(t){const r=document.documentElement;if(t==='dark'||t==='light')r.dataset.theme=t;else delete r.dataset.theme;$('themeBtn').textContent={dark:'Тема: тёмная',light:'Тема: светлая'}[t]||'Тема: авто'}
 function savedTheme(){try{return localStorage.getItem(THEME_KEY)||'auto'}catch(e){return 'auto'}}
@@ -557,4 +578,5 @@ $('themeBtn').onclick=()=>{const t=savedTheme(),nx=t==='auto'?'dark':t==='dark'?
 applyTheme(savedTheme());
 try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 render();
+recoverIfEmpty();
 try{const lb=Number(localStorage.getItem(KEY+'-backup'))||0;if(Date.now()-lb>30*864e5)$('status').textContent='Сделай резервную копию (кнопка бэкапа): данные хранятся только на этом устройстве.'}catch(e){}
