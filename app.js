@@ -175,6 +175,8 @@ function renderSalary(){
   if(regularHistory.length<3)warnings.push(`В модели только ${regularHistory.length} обычных месяцев: точность пока ограничена.`);
   const advs=[...new Set((data.payrollHistory||[]).filter(h=>!h.specialMonth&&h.advance>0).map(h=>Math.round(h.advance)))].sort((x,y)=>x-y);
   if(advs.length){const lo=advs[0],hi=advs[advs.length-1];let t=`Выплаты: аванс 25-го обычно ${rub(lo)}${hi!==lo?' или '+rub(hi):''}; остаток 10-го следующего месяца ≈ ${rub(r.net-hi)}${hi!==lo?'–'+rub(r.net-lo):''}.`;if(r.c.leave>0)t+=' В месяце есть отпуск — аванс может отличаться.';warnings.push(t)}
+  const devs=(data.payrollHistory||[]).filter(h=>!h.specialMonth&&h.scheduledHours>0&&h.hours>0);
+  if(devs.length>=3){const d=devs.map(h=>h.hours-h.scheduledHours),m=d.reduce((a,b)=>a+b,0)/d.length,sd=Math.sqrt(d.reduce((a,b)=>a+(b-m)**2,0)/d.length),nph=devs.reduce((a,h)=>a+h.net/h.hours,0)/devs.length;warnings.push(`Часы в листках отличались от графика в среднем на ${NUMBER.format(Math.round(m*10)/10)} ч, разброс ±${NUMBER.format(Math.round(sd))} ч (≈ ±${rub(sd*nph)} на руки). Это не входит в диапазон выше.`)}
   $('salaryStatus').textContent=warnings.join(' ');
 }
 function applySalaryProfile(profile){
@@ -543,6 +545,11 @@ $('notifyBtn').onclick=async()=>{
 let installPrompt=null;window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e;$('installBtn').classList.remove('hidden')});
 $('installBtn').onclick=async()=>{if(installPrompt){installPrompt.prompt();await installPrompt.userChoice;installPrompt=null;$('installBtn').classList.add('hidden')}};
 if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+const VIEWS=['plan','pay','hist','more'];
+function showView(v){if(!VIEWS.includes(v))v='plan';document.querySelectorAll('[data-tab]').forEach(e=>e.classList.toggle('on',e.dataset.tab===v));document.querySelectorAll('.tabbar button').forEach(b=>{const on=b.dataset.go===v;b.classList.toggle('active',on);b.setAttribute('aria-current',on?'page':'false')});try{localStorage.setItem('work-schedule-view',v)}catch(e){}window.scrollTo(0,0)}
+document.querySelectorAll('.tabbar button').forEach(b=>{b.onclick=()=>showView(b.dataset.go)});
+let view0='plan';try{view0=localStorage.getItem('work-schedule-view')||'plan'}catch(e){}
+showView(view0);
 const THEME_KEY='work-schedule-theme';
 function applyTheme(t){const r=document.documentElement;if(t==='dark'||t==='light')r.dataset.theme=t;else delete r.dataset.theme;$('themeBtn').textContent={dark:'Тема: тёмная',light:'Тема: светлая'}[t]||'Тема: авто'}
 function savedTheme(){try{return localStorage.getItem(THEME_KEY)||'auto'}catch(e){return 'auto'}}

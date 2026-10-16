@@ -7,11 +7,11 @@
 <body>
 <header><div class="eyebrow">ЛИЧНЫЙ КАЛЕНДАРЬ</div><h1>Мой график</h1><button id="installBtn" class="install hidden">Установить приложение</button> <button id="themeBtn" class="install">Тема: авто</button></header>
 <main>
-<section class="next card"><div class="eyebrow" id="nextLabel">БЛИЖАЙШАЯ СМЕНА</div><div id="nextTitle" class="next-title">Загрузка…</div><div id="nextDate" class="muted"></div><div id="nextTime" class="next-time"></div><div id="nextCountdown" class="muted"></div></section>
-<section class="card"><div class="monthbar"><button id="prevMonth" aria-label="Предыдущий месяц">‹</button><h2 id="monthTitle"></h2><button id="nextMonth" aria-label="Следующий месяц">›</button></div><div class="calendar" id="calendar"></div><div class="legend"><span><i class="dot day"></i> День</span><span><i class="dot night"></i> Ночь</span><span><i class="dot leave"></i> Отпуск</span><span><i class="dot off"></i> Выходной</span></div></section>
-<section class="card editor"><h2 id="editTitle">Изменить дату</h2><label for="dateInput">Дата</label><input type="date" id="dateInput"><label for="shiftInput">Статус</label><select id="shiftInput"><option value="DAY">Дневная смена</option><option value="NIGHT">Ночная смена</option><option value="OFF">Выходной</option><option value="VACATION">Отпуск</option></select><button id="saveBtn" class="primary">Сохранить дату</button><p class="hint">День: 08:00–20:30 (11,5 оплачиваемого часа). Ночь: 20:45–07:45 следующего дня (10,5 оплачиваемого часа).</p></section>
+<section class="next card" data-tab="plan"><div class="eyebrow" id="nextLabel">БЛИЖАЙШАЯ СМЕНА</div><div id="nextTitle" class="next-title">Загрузка…</div><div id="nextDate" class="muted"></div><div id="nextTime" class="next-time"></div><div id="nextCountdown" class="muted"></div></section>
+<section class="card" data-tab="plan"><div class="monthbar"><button id="prevMonth" aria-label="Предыдущий месяц">‹</button><h2 id="monthTitle"></h2><button id="nextMonth" aria-label="Следующий месяц">›</button></div><div class="calendar" id="calendar"></div><div class="legend"><span><i class="dot day"></i> День</span><span><i class="dot night"></i> Ночь</span><span><i class="dot leave"></i> Отпуск</span><span><i class="dot off"></i> Выходной</span></div></section>
+<section class="card editor" data-tab="plan"><h2 id="editTitle">Изменить дату</h2><label for="dateInput">Дата</label><input type="date" id="dateInput"><label for="shiftInput">Статус</label><select id="shiftInput"><option value="DAY">Дневная смена</option><option value="NIGHT">Ночная смена</option><option value="OFF">Выходной</option><option value="VACATION">Отпуск</option></select><button id="saveBtn" class="primary">Сохранить дату</button><p class="hint">День: 08:00–20:30 (11,5 оплачиваемого часа). Ночь: 20:45–07:45 следующего дня (10,5 оплачиваемого часа).</p></section>
 
-<section class="card salary">
+<section class="card salary" data-tab="pay">
   <div class="salary-head"><div><div class="eyebrow">ПРОГНОЗ ПО ВЫБРАННОМУ МЕСЯЦУ</div><h2>Зарплата</h2></div><div id="salaryMonth" class="salary-month"></div></div>
   <p class="hint">Расчёт использует часы из графика и модель надбавок. Премии, отпускные, перерасчёты и удержания могут меняться; прогноз не является расчётным листком работодателя.</p>
   <div class="summary-grid">
@@ -68,7 +68,7 @@
   <p id="salaryStatus" class="muted" role="status"></p>
 </section>
 
-<section class="card history-card">
+<section class="card history-card" data-tab="hist">
   <div class="salary-head"><div><div class="eyebrow">ЛОКАЛЬНАЯ ИСТОРИЯ</div><h2>История зарплаты</h2></div><div class="history-count" id="historyCount">0 месяцев</div></div>
   <p class="hint">Загрузи один или несколько HTML-расчётных листков. Приложение извлечёт суммы и часы, сохранит сводные показатели и обезличенные названия/суммы строк начислений и удержаний для классификации. Исходные HTML-файлы не сохраняются и не отправляются на сервер.</p>
   <label for="payrollFiles">Расчётные листки (.HTML / .HTM) или готовая сводка истории (.JSON)</label><input id="payrollFiles" type="file" accept=".html,.htm,.json,text/html,application/json" multiple>
@@ -85,7 +85,8 @@
   <p id="historyStatus" class="muted" role="status"></p>
 </section>
 
-<section class="card tools"><h2>Инструменты</h2><button id="notifyBtn">Включить уведомления</button><button id="exportBtn">Экспортировать календарь (.ics)</button><button id="backupBtn">Скачать резервную копию приложения (.json)</button><label for="restoreInput">Восстановить резервную копию</label><input id="restoreInput" type="file" accept="application/json,.json"><button id="resetBtn" class="danger">Сбросить изменения графика</button><p id="status" class="muted" role="status"></p></section>
-</main><footer>График, настройки и история зарплаты хранятся локально в этом браузере на этом устройстве.</footer>
+<section class="card tools" data-tab="more"><h2>Инструменты</h2><button id="notifyBtn">Включить уведомления</button><button id="exportBtn">Экспортировать календарь (.ics)</button><button id="backupBtn">Скачать резервную копию приложения (.json)</button><label for="restoreInput">Восстановить резервную копию</label><input id="restoreInput" type="file" accept="application/json,.json"><button id="resetBtn" class="danger">Сбросить изменения графика</button><p id="status" class="muted" role="status"></p></section>
+</main><footer data-tab="more">График, настройки и история зарплаты хранятся локально в этом браузере на этом устройстве.</footer>
+<nav class="tabbar" aria-label="Разделы"><button type="button" data-go="plan"><span>📅</span>График</button><button type="button" data-go="pay"><span>💰</span>Зарплата</button><button type="button" data-go="hist"><span>📊</span>История</button><button type="button" data-go="more"><span>⚙️</span>Ещё</button></nav>
 <script src="app.js"></script>
 </body></html>
